@@ -56,6 +56,8 @@ export default function EditorPage() {
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: system-ui, sans-serif; }
+    .ve-hovered { outline: 2px dashed rgba(124, 109, 240, 0.6) !important; outline-offset: 2px; }
+    .ve-selected { outline: 2px solid #7c6df0 !important; outline-offset: 2px; }
   </style>
 </head>
 <body>
@@ -101,13 +103,31 @@ export default function EditorPage() {
       }
 
       var TEXT_TAGS = ['h1','h2','h3','h4','h5','h6','p','span','a','button','label','li'];
+      var selectedXPath = null;
 
       document.querySelectorAll('body *').forEach(function(el) {
         el.style.cursor = 'pointer';
+
+        el.addEventListener('mouseover', function(e) {
+          e.stopPropagation();
+          if (el.classList.contains('ve-selected')) return;
+          document.querySelectorAll('.ve-hovered').forEach(function(h) { h.classList.remove('ve-hovered'); });
+          el.classList.add('ve-hovered');
+        });
+
+        el.addEventListener('mouseout', function(e) {
+          e.stopPropagation();
+          el.classList.remove('ve-hovered');
+        });
+
         el.addEventListener('click', function(e) {
           e.stopPropagation();
           e.preventDefault();
+          document.querySelectorAll('.ve-selected').forEach(function(s) { s.classList.remove('ve-selected'); });
+          el.classList.remove('ve-hovered');
+          el.classList.add('ve-selected');
           var xpath = getXPath(el);
+          selectedXPath = xpath;
           var tag = el.tagName.toLowerCase();
           var text = '';
           if (el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) {
