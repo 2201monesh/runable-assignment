@@ -1,8 +1,9 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import type { SelectedElement } from '@/types/editor'
+import type { SelectedElement, DOMTreeNode } from '@/types/editor'
 import InspectorPanel from '@/components/editor/InspectorPanel'
+import LayersPanel from '@/components/editor/LayersPanel'
 
 const DEFAULT_JSX = `function MyComponent() {
   return (
@@ -27,12 +28,17 @@ export default function EditorPage() {
   const [error, setError] = useState<string | null>(null)
   const [iframeContent, setIframeContent] = useState('')
   const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null)
+  const [domTree, setDomTree] = useState<DOMTreeNode[]>([])
+  const [activeTab, setActiveTab] = useState<'properties' | 'layers' | 'history'>('properties')
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
     function handleMessage(e: MessageEvent) {
       if (e.data.type === 'ELEMENT_SELECTED') {
         setSelectedElement(e.data)
+      }
+      if (e.data.type === 'DOM_TREE') {
+        setDomTree(e.data.tree)
       }
     }
     window.addEventListener('message', handleMessage)
@@ -44,6 +50,7 @@ export default function EditorPage() {
     setIframeContent('')
     setIsRendered(false)
     setSelectedElement(null)
+    setDomTree([])
   }
 
   function handleRender() {
@@ -143,6 +150,27 @@ export default function EditorPage() {
           }, '*');
         });
       });
+
+      function buildTree(el, depth) {
+        var result = [];
+        if (el.nodeType !== 1) return result;
+        var tag = el.tagName.toLowerCase();
+        if (['script','style','head'].includes(tag)) return result;
+        var text = '';
+        if (el.childNodes.length === 1 && el.childNodes[0].nodeType === 3) {
+          text = el.textContent.trim().slice(0, 30);
+        }
+        result.push({ tag: tag, depth: depth, xpath: getXPath(el), text: text });
+        Array.from(el.children).forEach(function(child) {
+          result = result.concat(buildTree(child, depth + 1));
+        });
+        return result;
+      }
+
+      var root = document.getElementById('root');
+      if (root) {
+        window.parent.postMessage({ type: 'DOM_TREE', tree: buildTree(root, 0) }, '*');
+      }
     }, 800);
 
     function getElementByXPath(xpath) {
@@ -168,12 +196,20 @@ export default function EditorPage() {
           }
         }
       }
+      if (e.data.type === 'SELECT_BY_XPATH') {
+        var el = getElementByXPath(e.data.xpath);
+        if (el) el.click();
+      }
     });
   </script>
 </body>
 </html>`
     setIframeContent(html)
     setIsRendered(true)
+  }
+
+  function handleSelectFromLayers(xpath: string) {
+    iframeRef.current?.contentWindow?.postMessage({ type: 'SELECT_BY_XPATH', xpath }, '*')
   }
 
   function handleApplyStyle(xpath: string, styles: Record<string, string>, text?: string) {
@@ -335,29 +371,40 @@ export default function EditorPage() {
             className="flex shrink-0"
             style={{ borderBottom: '1px solid #2a2a38' }}
           >
-            <button
-              className="flex-1 text-xs py-2"
-              style={{ color: '#aaaaaa', borderRight: '1px solid #2a2a38', background: 'transparent' }}
-            >
-              Properties
-            </button>
-            <button
-              className="flex-1 text-xs py-2"
-              style={{ color: '#aaaaaa', borderRight: '1px solid #2a2a38', background: 'transparent' }}
-            >
-              Layers
-            </button>
-            <button
-              className="flex-1 text-xs py-2"
-              style={{ color: '#aaaaaa', background: 'transparent' }}
-            >
-              History
-            </button>
+            {(['properties', 'layers', 'history'] as const).map((tab, i, arr) => (
+              <button
+                key={tab}
+                onClick={() => setActiveTab(tab)}
+                className="flex-1 text-xs py-2 capitalize"
+                style={{
+                  color: activeTab === tab ? '#fff' : '#aaaaaa',
+                  background: activeTab === tab ? '#0f0f13' : 'transparent',
+                  borderRight: i < arr.length - 1 ? '1px solid #2a2a38' : 'none',
+                  borderBottom: activeTab === tab ? '2px solid #7c6df0' : '2px solid transparent',
+                }}
+              >
+                {tab.charAt(0).toUpperCase() + tab.slice(1)}
+              </button>
+            ))}
           </div>
-          <InspectorPanel
-            selectedElement={selectedElement}
-            onApplyStyle={handleApplyStyle}
-          />
+          {activeTab === 'properties' && (
+            <InspectorPanel
+              selectedElement={selectedElement}
+              onApplyStyle={handleApplyStyle}
+            />
+          )}
+          {activeTab === 'layers' && (
+            <LayersPanel
+              tree={domTree}
+              selectedXPath={selectedElement?.xpath ?? null}
+              onSelectNode={handleSelectFromLayers}
+            />
+          )}
+          {activeTab === 'history' && (
+            <div className="flex-1 flex items-center justify-center">
+              <span className="text-xs" style={{ color: '#555566' }}>No history yet</span>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,3 +1,10 @@
+export interface DOMTreeNode {
+  tag: string
+  depth: number
+  xpath: string
+  text: string
+}
+
 export interface SelectedElement {
   tag: string
   text: string
