@@ -124,6 +124,31 @@ export default function EditorPage() {
         });
       });
     }, 800);
+
+    function getElementByXPath(xpath) {
+      try {
+        return document.evaluate(xpath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null).singleNodeValue;
+      } catch(e) { return null; }
+    }
+
+    window.addEventListener('message', function(e) {
+      if (e.data.type === 'APPLY_STYLE') {
+        var el = getElementByXPath(e.data.xpath);
+        if (!el) return;
+        var styles = e.data.styles || {};
+        Object.keys(styles).forEach(function(prop) {
+          el.style[prop] = styles[prop];
+        });
+        if (e.data.text !== undefined) {
+          var textNodes = Array.from(el.childNodes).filter(function(n) { return n.nodeType === 3; });
+          if (textNodes.length > 0) {
+            textNodes[0].textContent = e.data.text;
+          } else if (el.children.length === 0) {
+            el.textContent = e.data.text;
+          }
+        }
+      }
+    });
   </script>
 </body>
 </html>`
