@@ -32,6 +32,7 @@ export default function EditorPage() {
   const [domTree, setDomTree] = useState<DOMTreeNode[]>([])
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [activeTab, setActiveTab] = useState<'properties' | 'layers' | 'history'>('properties')
+  const [previewMode, setPreviewMode] = useState<'light' | 'dark' | 'mobile'>('light')
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
   useEffect(() => {
@@ -41,6 +42,9 @@ export default function EditorPage() {
       }
       if (e.data.type === 'DOM_TREE') {
         setDomTree(e.data.tree)
+      }
+      if (e.data.type === 'RENDER_ERROR') {
+        setError(e.data.message)
       }
     }
     window.addEventListener('message', handleMessage)
@@ -54,9 +58,11 @@ export default function EditorPage() {
     setSelectedElement(null)
     setDomTree([])
     setHistory([])
+    setError(null)
   }
 
   function handleRender() {
+    setError(null)
     const html = `<!DOCTYPE html>
 <html>
 <head>
@@ -85,6 +91,7 @@ export default function EditorPage() {
   </script>
   <script>
     setTimeout(function() {
+      try {
       function getXPath(el) {
         if (el === document.body) return '/html/body';
         var ix = 0;
@@ -173,6 +180,9 @@ export default function EditorPage() {
       var root = document.getElementById('root');
       if (root) {
         window.parent.postMessage({ type: 'DOM_TREE', tree: buildTree(root, 0) }, '*');
+      }
+      } catch(err) {
+        window.parent.postMessage({ type: 'RENDER_ERROR', message: err.message }, '*')
       }
     }, 800);
 
@@ -328,33 +338,62 @@ export default function EditorPage() {
             className="flex items-center gap-1 px-3 shrink-0"
             style={{ height: 48, background: '#16161d', borderBottom: '1px solid #2a2a38' }}
           >
+            {(['light', 'dark', 'mobile'] as const).map((mode) => (
+              <button
+                key={mode}
+                onClick={() => setPreviewMode(mode)}
+                className="rounded text-xs px-3 py-1 capitalize"
+                style={{
+                  border: '1px solid #2a2a38',
+                  background: previewMode === mode ? '#7c6df0' : 'transparent',
+                  color: previewMode === mode ? '#fff' : '#aaaaaa',
+                }}
+              >
+                {mode.charAt(0).toUpperCase() + mode.slice(1)}
+              </button>
+            ))}
+            <div style={{ flex: 1 }} />
             <button
               className="rounded text-xs px-3 py-1"
               style={{ border: '1px solid #2a2a38', color: '#aaaaaa', background: 'transparent' }}
+              onClick={handleRender}
             >
-              Light
-            </button>
-            <button
-              className="rounded text-xs px-3 py-1"
-              style={{ border: '1px solid #2a2a38', color: '#aaaaaa', background: 'transparent' }}
-            >
-              Dark
-            </button>
-            <button
-              className="rounded text-xs px-3 py-1"
-              style={{ border: '1px solid #2a2a38', color: '#aaaaaa', background: 'transparent' }}
-            >
-              Mobile
+              ↻ Refresh
             </button>
           </div>
-          <div className="flex-1 relative">
+          {error && (
+            <div
+              style={{
+                background: '#3d1515',
+                borderBottom: '1px solid #7f1d1d',
+                color: '#fca5a5',
+                fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
+                fontSize: 12,
+                padding: '8px 12px',
+                flexShrink: 0,
+              }}
+            >
+              ⚠ {error}
+            </div>
+          )}
+          <div
+            className="flex-1 relative overflow-auto"
+            style={{ background: previewMode === 'dark' ? '#1e1e2e' : 'white' }}
+          >
             {iframeContent ? (
-              <iframe
-                ref={iframeRef}
-                srcDoc={iframeContent}
-                sandbox="allow-scripts"
-                style={{ width: '100%', height: '100%', border: 'none' }}
-              />
+              <div style={{
+                width: previewMode === 'mobile' ? 390 : '100%',
+                maxWidth: previewMode === 'mobile' ? 390 : undefined,
+                margin: previewMode === 'mobile' ? '0 auto' : undefined,
+                height: '100%',
+              }}>
+                <iframe
+                  ref={iframeRef}
+                  srcDoc={iframeContent}
+                  sandbox="allow-scripts"
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                />
+              </div>
             ) : (
               <div className="absolute inset-0 flex items-center justify-center">
                 <span className="text-sm" style={{ color: '#555566' }}>
