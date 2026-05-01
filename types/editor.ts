@@ -1,3 +1,10 @@
+export interface HistoryEntry {
+  tag: string
+  property: string
+  value: string
+  time: string
+}
+
 export interface DOMTreeNode {
   tag: string
   depth: number

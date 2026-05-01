@@ -1,9 +1,10 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import type { SelectedElement, DOMTreeNode } from '@/types/editor'
+import type { SelectedElement, DOMTreeNode, HistoryEntry } from '@/types/editor'
 import InspectorPanel from '@/components/editor/InspectorPanel'
 import LayersPanel from '@/components/editor/LayersPanel'
+import HistoryPanel from '@/components/editor/HistoryPanel'
 
 const DEFAULT_JSX = `function MyComponent() {
   return (
@@ -29,6 +30,7 @@ export default function EditorPage() {
   const [iframeContent, setIframeContent] = useState('')
   const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null)
   const [domTree, setDomTree] = useState<DOMTreeNode[]>([])
+  const [history, setHistory] = useState<HistoryEntry[]>([])
   const [activeTab, setActiveTab] = useState<'properties' | 'layers' | 'history'>('properties')
   const iframeRef = useRef<HTMLIFrameElement>(null)
 
@@ -51,6 +53,7 @@ export default function EditorPage() {
     setIsRendered(false)
     setSelectedElement(null)
     setDomTree([])
+    setHistory([])
   }
 
   function handleRender() {
@@ -213,12 +216,18 @@ export default function EditorPage() {
   }
 
   function handleApplyStyle(xpath: string, styles: Record<string, string>, text?: string) {
-    iframeRef.current?.contentWindow?.postMessage({
-      type: 'APPLY_STYLE',
-      xpath,
-      styles,
-      text,
-    }, '*')
+    iframeRef.current?.contentWindow?.postMessage({ type: 'APPLY_STYLE', xpath, styles, text }, '*')
+
+    if (Object.keys(styles).length > 0 && selectedElement) {
+      const property = Object.keys(styles)[0]
+      const value = styles[property]
+      const now = new Date()
+      const time = now.getHours() + ':' + String(now.getMinutes()).padStart(2, '0')
+      setHistory(prev => [
+        { tag: selectedElement.tag, property, value, time },
+        ...prev,
+      ].slice(0, 50))
+    }
   }
 
   function handleCopyJsx() {
@@ -401,9 +410,7 @@ export default function EditorPage() {
             />
           )}
           {activeTab === 'history' && (
-            <div className="flex-1 flex items-center justify-center">
-              <span className="text-xs" style={{ color: '#555566' }}>No history yet</span>
-            </div>
+            <HistoryPanel history={history} />
           )}
         </div>
       </div>
