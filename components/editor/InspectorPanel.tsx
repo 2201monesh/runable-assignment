@@ -2,6 +2,14 @@
 
 import { useState, useEffect } from 'react'
 import type { SelectedElement } from '@/types/editor'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Slider } from '@/components/ui/slider'
+import { Textarea } from '@/components/ui/textarea'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { AlignLeft, AlignCenter, AlignRight, MousePointer2 } from 'lucide-react'
 
 interface InspectorPanelProps {
   selectedElement: SelectedElement | null
@@ -15,62 +23,7 @@ function rgbToHex(rgb: string): string {
   return '#' + [m[1], m[2], m[3]].map(x => parseInt(x).toString(16).padStart(2, '0')).join('')
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="px-4 pt-4 pb-2">
-      <span
-        className="text-xs font-semibold uppercase tracking-wider"
-        style={{ color: '#44445a' }}
-      >
-        {children}
-      </span>
-    </div>
-  )
-}
-
-function Row({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="px-4 pb-3">
-      <label className="text-xs block mb-1.5" style={{ color: '#777788' }}>
-        {label}
-      </label>
-      {children}
-    </div>
-  )
-}
-
-function ColorPair({ value, onChange }: { value: string; onChange: (v: string) => void }) {
-  return (
-    <div className="flex items-center gap-2">
-      <input
-        type="color"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        style={{
-          width: 28,
-          height: 28,
-          border: 'none',
-          background: 'none',
-          padding: 0,
-          cursor: 'pointer',
-          borderRadius: 4,
-          flexShrink: 0,
-        }}
-      />
-      <input
-        type="text"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="flex-1 rounded px-2 py-1.5 text-xs outline-none"
-        style={{ background: '#0f0f13', color: '#c9d1d9', border: '1px solid #2a2a38' }}
-      />
-    </div>
-  )
-}
-
-const INPUT_STYLE = { background: '#0f0f13', color: '#c9d1d9', border: '1px solid #2a2a38' }
 const FONT_WEIGHT_OPTIONS = [['Light', '300'], ['Regular', '400'], ['Semi', '600'], ['Bold', '700']] as const
-const TEXT_ALIGN_OPTIONS = ['Left', 'Center', 'Right'] as const
 
 export default function InspectorPanel({ selectedElement, onApplyStyle }: InspectorPanelProps) {
   const [text, setText] = useState('')
@@ -103,11 +56,19 @@ export default function InspectorPanel({ selectedElement, onApplyStyle }: Inspec
 
   if (!selectedElement) {
     return (
-      <div className="flex-1 flex flex-col items-center justify-center px-6 text-center gap-2">
-        <span style={{ fontSize: 22, lineHeight: 1 }}>🖱️</span>
-        <span className="text-xs" style={{ color: '#555566', lineHeight: 1.6 }}>
-          Click any element in the preview to edit its properties
-        </span>
+      <div className="flex flex-col h-full bg-white">
+        <div className="flex items-center px-4 border-b" style={{ height: 40 }}>
+          <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-widest">Inspector</span>
+        </div>
+        <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center px-6">
+          <MousePointer2 className="h-6 w-6 text-zinc-300" />
+          <div>
+            <p className="text-sm font-medium text-zinc-400">Select an element</p>
+            <p className="text-xs text-zinc-400 leading-relaxed mt-1">
+              Click any element in the preview to inspect and edit it
+            </p>
+          </div>
+        </div>
       </div>
     )
   }
@@ -115,183 +76,229 @@ export default function InspectorPanel({ selectedElement, onApplyStyle }: Inspec
   const xpath = selectedElement.xpath
 
   return (
-    <div
-      className="flex-1 overflow-y-auto"
-      style={{ scrollbarWidth: 'thin', scrollbarColor: '#2a2a38 transparent' } as React.CSSProperties}
-    >
-      {/* Text */}
-      {selectedElement.isTextElement && (
-        <div style={{ borderBottom: '1px solid #2a2a38' }}>
-          <SectionLabel>Text</SectionLabel>
-          <Row label="Content">
-            <textarea
+    <div className="flex flex-col h-full bg-white">
+      {/* Panel header */}
+      <div className="flex items-center px-4 border-b" style={{ height: 40 }}>
+        <span className="text-[11px] font-medium text-zinc-500 uppercase tracking-widest">Inspector</span>
+      </div>
+
+      {/* Selected element header */}
+      <div className="px-4 py-3 border-b bg-zinc-50 flex items-center gap-2">
+        <Badge variant="outline" className="font-mono text-xs rounded-full">{selectedElement.tag}</Badge>
+        <span className="text-[11px] text-zinc-400 truncate max-w-[140px]">{selectedElement.text}</span>
+      </div>
+
+      <ScrollArea className="flex-1">
+        {/* Content */}
+        {selectedElement.isTextElement && (
+          <div className="px-4 pt-4 pb-2 border-b border-zinc-100">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-3">Content</p>
+            <Label className="text-[11px] text-zinc-500 mb-1.5 block">Text</Label>
+            <Textarea
               value={text}
-              rows={3}
+              className="text-xs resize-none min-h-[60px]"
               onChange={(e) => {
                 setText(e.target.value)
                 onApplyStyle(xpath, {}, e.target.value)
               }}
-              className="w-full rounded px-2 py-1.5 text-xs outline-none resize-none"
-              style={INPUT_STYLE}
             />
-          </Row>
-        </div>
-      )}
-
-      {/* Typography */}
-      <div style={{ borderBottom: '1px solid #2a2a38' }}>
-        <SectionLabel>Typography</SectionLabel>
-
-        <Row label={`Font Size — ${fontSize}px`}>
-          <input
-            type="range"
-            min={8}
-            max={72}
-            value={fontSize}
-            onChange={(e) => {
-              const v = Number(e.target.value)
-              setFontSize(v)
-              onApplyStyle(xpath, { fontSize: v + 'px' })
-            }}
-            className="w-full"
-          />
-        </Row>
-
-        <Row label="Font Weight">
-          <div className="flex gap-1">
-            {FONT_WEIGHT_OPTIONS.map(([label, val]) => (
-              <button
-                key={val}
-                onClick={() => { setFontWeight(val); onApplyStyle(xpath, { fontWeight: val }) }}
-                className="flex-1 text-xs py-1 rounded"
-                style={{
-                  background: fontWeight === val ? '#7c6df0' : 'transparent',
-                  color: fontWeight === val ? '#fff' : '#aaaaaa',
-                  border: '1px solid #2a2a38',
-                }}
-              >
-                {label}
-              </button>
-            ))}
           </div>
-        </Row>
+        )}
 
-        <Row label="Text Color">
-          <ColorPair
-            value={color}
-            onChange={(v) => { setColor(v); onApplyStyle(xpath, { color: v }) }}
-          />
-        </Row>
+        {/* Typography */}
+        <div className="px-4 pt-4 pb-2 border-b border-zinc-100">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-3">Typography</p>
 
-        <Row label="Text Align">
-          <div className="flex gap-1">
-            {TEXT_ALIGN_OPTIONS.map((label) => {
-              const val = label.toLowerCase()
-              return (
-                <button
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="text-[11px] text-zinc-500">Font Size</Label>
+              <span className="text-[11px] text-zinc-400 tabular-nums">{fontSize}px</span>
+            </div>
+            <Slider
+              className="my-1"
+              min={8}
+              max={72}
+              step={1}
+              value={[fontSize]}
+              onValueChange={(vals) => {
+                const v = (vals as number[])[0]
+                setFontSize(v)
+                onApplyStyle(xpath, { fontSize: v + 'px' })
+              }}
+            />
+          </div>
+
+          <div className="mb-3">
+            <Label className="text-[11px] text-zinc-500 mb-1.5 block">Font Weight</Label>
+            <div className="grid grid-cols-4 gap-1">
+              {FONT_WEIGHT_OPTIONS.map(([label, val]) => (
+                <Button
                   key={val}
-                  onClick={() => { setTextAlign(val); onApplyStyle(xpath, { textAlign: val }) }}
-                  className="flex-1 text-xs py-1 rounded"
-                  style={{
-                    background: textAlign === val ? '#7c6df0' : 'transparent',
-                    color: textAlign === val ? '#fff' : '#aaaaaa',
-                    border: '1px solid #2a2a38',
-                  }}
+                  variant={fontWeight === val ? 'default' : 'outline'}
+                  size="sm"
+                  className="text-xs h-7 px-0"
+                  onClick={() => { setFontWeight(val); onApplyStyle(xpath, { fontWeight: val }) }}
                 >
                   {label}
-                </button>
-              )
-            })}
+                </Button>
+              ))}
+            </div>
           </div>
-        </Row>
-      </div>
 
-      {/* Background */}
-      <div style={{ borderBottom: '1px solid #2a2a38' }}>
-        <SectionLabel>Background</SectionLabel>
-        <Row label="Background Color">
-          <ColorPair
-            value={backgroundColor}
-            onChange={(v) => { setBackgroundColor(v); onApplyStyle(xpath, { backgroundColor: v }) }}
-          />
-        </Row>
-      </div>
+          <div className="mb-3">
+            <Label className="text-[11px] text-zinc-500 mb-1.5 block">Text Color</Label>
+            <div className="flex gap-2 items-center">
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => { setColor(e.target.value); onApplyStyle(xpath, { color: e.target.value }) }}
+                className="w-8 h-8 rounded cursor-pointer border border-zinc-200 p-0.5"
+              />
+              <Input
+                value={color}
+                onChange={(e) => { setColor(e.target.value); onApplyStyle(xpath, { color: e.target.value }) }}
+                className="h-7 text-xs font-mono flex-1"
+              />
+            </div>
+          </div>
 
-      {/* Spacing */}
-      <div style={{ borderBottom: '1px solid #2a2a38' }}>
-        <SectionLabel>Spacing</SectionLabel>
+          <div className="mb-2">
+            <Label className="text-[11px] text-zinc-500 mb-1.5 block">Text Align</Label>
+            <div className="grid grid-cols-3 gap-1">
+              {(['left', 'center', 'right'] as const).map((val) => {
+                const Icon = val === 'left' ? AlignLeft : val === 'center' ? AlignCenter : AlignRight
+                return (
+                  <Button
+                    key={val}
+                    variant={textAlign === val ? 'default' : 'outline'}
+                    size="sm"
+                    className="h-7"
+                    onClick={() => { setTextAlign(val); onApplyStyle(xpath, { textAlign: val }) }}
+                  >
+                    <Icon className="h-3.5 w-3.5" />
+                  </Button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
 
-        <Row label={`Padding — ${padding}px`}>
-          <input
-            type="range"
-            min={0}
-            max={80}
-            value={padding}
-            onChange={(e) => {
-              const v = Number(e.target.value)
-              setPadding(v)
-              onApplyStyle(xpath, { padding: v + 'px' })
-            }}
-            className="w-full"
-          />
-        </Row>
+        {/* Background */}
+        <div className="px-4 pt-4 pb-2 border-b border-zinc-100">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-3">Background</p>
+          <Label className="text-[11px] text-zinc-500 mb-1.5 block">Background Color</Label>
+          <div className="flex gap-2 items-center">
+            <input
+              type="color"
+              value={backgroundColor}
+              onChange={(e) => { setBackgroundColor(e.target.value); onApplyStyle(xpath, { backgroundColor: e.target.value }) }}
+              className="w-8 h-8 rounded cursor-pointer border border-zinc-200 p-0.5"
+            />
+            <Input
+              value={backgroundColor}
+              onChange={(e) => { setBackgroundColor(e.target.value); onApplyStyle(xpath, { backgroundColor: e.target.value }) }}
+              className="h-7 text-xs font-mono flex-1"
+            />
+          </div>
+        </div>
 
-        <Row label={`Border Radius — ${borderRadius}px`}>
-          <input
-            type="range"
-            min={0}
-            max={40}
-            value={borderRadius}
-            onChange={(e) => {
-              const v = Number(e.target.value)
-              setBorderRadius(v)
-              onApplyStyle(xpath, { borderRadius: v + 'px' })
-            }}
-            className="w-full"
-          />
-        </Row>
+        {/* Spacing */}
+        <div className="px-4 pt-4 pb-2 border-b border-zinc-100">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-3">Spacing</p>
 
-        <Row label="Width">
-          <input
-            type="text"
-            value={width}
-            placeholder="auto"
-            onChange={(e) => {
-              setWidth(e.target.value)
-              onApplyStyle(xpath, { width: e.target.value })
-            }}
-            className="w-full rounded px-2 py-1.5 text-xs outline-none"
-            style={INPUT_STYLE}
-          />
-        </Row>
-      </div>
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="text-[11px] text-zinc-500">Padding</Label>
+              <span className="text-[11px] text-zinc-400 tabular-nums">{padding}px</span>
+            </div>
+            <Slider
+              className="my-1"
+              min={0}
+              max={80}
+              step={1}
+              value={[padding]}
+              onValueChange={(vals) => {
+                const v = (vals as number[])[0]
+                setPadding(v)
+                onApplyStyle(xpath, { padding: v + 'px' })
+              }}
+            />
+          </div>
 
-      {/* Border */}
-      <div style={{ paddingBottom: 16 }}>
-        <SectionLabel>Border</SectionLabel>
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="text-[11px] text-zinc-500">Border Radius</Label>
+              <span className="text-[11px] text-zinc-400 tabular-nums">{borderRadius}px</span>
+            </div>
+            <Slider
+              className="my-1"
+              min={0}
+              max={40}
+              step={1}
+              value={[borderRadius]}
+              onValueChange={(vals) => {
+                const v = (vals as number[])[0]
+                setBorderRadius(v)
+                onApplyStyle(xpath, { borderRadius: v + 'px' })
+              }}
+            />
+          </div>
 
-        <Row label={`Border Width — ${borderWidth}px`}>
-          <input
-            type="range"
-            min={0}
-            max={8}
-            value={borderWidth}
-            onChange={(e) => {
-              const v = Number(e.target.value)
-              setBorderWidth(v)
-              onApplyStyle(xpath, { borderWidth: v + 'px' })
-            }}
-            className="w-full"
-          />
-        </Row>
+          <div className="mb-2">
+            <Label className="text-[11px] text-zinc-500 mb-1.5 block">Width</Label>
+            <Input
+              value={width}
+              placeholder="auto"
+              onChange={(e) => {
+                setWidth(e.target.value)
+                onApplyStyle(xpath, { width: e.target.value })
+              }}
+              className="h-7 text-xs font-mono"
+            />
+          </div>
+        </div>
 
-        <Row label="Border Color">
-          <ColorPair
-            value={borderColor}
-            onChange={(v) => { setBorderColor(v); onApplyStyle(xpath, { borderColor: v }) }}
-          />
-        </Row>
-      </div>
+        {/* Border */}
+        <div className="px-4 pt-4 pb-4">
+          <p className="text-[10px] font-semibold uppercase tracking-wider text-zinc-400 mb-3">Border</p>
+
+          <div className="mb-3">
+            <div className="flex items-center justify-between mb-1.5">
+              <Label className="text-[11px] text-zinc-500">Border Width</Label>
+              <span className="text-[11px] text-zinc-400 tabular-nums">{borderWidth}px</span>
+            </div>
+            <Slider
+              className="my-1"
+              min={0}
+              max={8}
+              step={1}
+              value={[borderWidth]}
+              onValueChange={(vals) => {
+                const v = (vals as number[])[0]
+                setBorderWidth(v)
+                onApplyStyle(xpath, { borderWidth: v + 'px' })
+              }}
+            />
+          </div>
+
+          <div>
+            <Label className="text-[11px] text-zinc-500 mb-1.5 block">Border Color</Label>
+            <div className="flex gap-2 items-center">
+              <input
+                type="color"
+                value={borderColor}
+                onChange={(e) => { setBorderColor(e.target.value); onApplyStyle(xpath, { borderColor: e.target.value }) }}
+                className="w-8 h-8 rounded cursor-pointer border border-zinc-200 p-0.5"
+              />
+              <Input
+                value={borderColor}
+                onChange={(e) => { setBorderColor(e.target.value); onApplyStyle(xpath, { borderColor: e.target.value }) }}
+                className="h-7 text-xs font-mono flex-1"
+              />
+            </div>
+          </div>
+        </div>
+      </ScrollArea>
     </div>
   )
 }
