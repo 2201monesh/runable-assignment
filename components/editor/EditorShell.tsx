@@ -295,16 +295,28 @@ export default function EditorShell({ initialCode, initialId }: EditorShellProps
             </TooltipProvider>
           </div>
 
-          {/* Error banner */}
-          {error && (
-            <div className="flex items-start gap-2 px-4 py-2 bg-red-50 border-b border-red-200 shrink-0">
-              <AlertCircle className="h-3.5 w-3.5 text-red-500 mt-0.5 shrink-0" />
-              <span className="text-xs text-red-700 font-mono">{error}</span>
-            </div>
-          )}
-
           {/* Preview area */}
-          {iframeContent ? (
+          {iframeContent && error ? (
+            <div
+              className="flex-1 flex items-center justify-center"
+              style={{
+                backgroundImage: 'radial-gradient(circle, #e4e4e7 1px, transparent 1px)',
+                backgroundSize: '24px 24px',
+                backgroundColor: '#f9fafb',
+              }}
+            >
+              <div className="rounded-xl border border-red-200 bg-white px-10 py-10 text-center max-w-md mx-4 shadow-sm">
+                <div className="flex items-center justify-center w-10 h-10 rounded-full bg-red-50 mx-auto mb-4">
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                </div>
+                <p className="text-sm font-semibold text-zinc-800 mb-1">JSX Error</p>
+                <p className="text-xs text-zinc-400 mb-4">Fix the issue below and click Render again</p>
+                <div className="text-left bg-zinc-950 rounded-lg px-4 py-3 border border-zinc-800">
+                  <p className="text-xs text-red-400 font-mono leading-relaxed break-all whitespace-pre-wrap">{error}</p>
+                </div>
+              </div>
+            </div>
+          ) : iframeContent && !error ? (
             <div
               className="flex-1 overflow-auto"
               style={{

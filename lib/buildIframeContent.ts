@@ -1,4 +1,5 @@
 export function buildIframeContent(code: string): string {
+  const escapedCode = JSON.stringify(code)
   return `<!DOCTYPE html>
 <html>
 <head>
@@ -14,15 +15,18 @@ export function buildIframeContent(code: string): string {
 </head>
 <body>
   <div id="root"></div>
-  <script type="text/babel">
-    ${code}
-    const __comp = typeof GeneratedComponent !== 'undefined' ? GeneratedComponent
-      : typeof MyComponent !== 'undefined' ? MyComponent
-      : typeof App !== 'undefined' ? App
-      : typeof Component !== 'undefined' ? Component
-      : null;
-    if (__comp) {
-      ReactDOM.render(React.createElement(__comp), document.getElementById('root'));
+  <script>
+    try {
+      var compiled = Babel.transform(${escapedCode}, { presets: ['react'] }).code;
+      (0, eval)(compiled);
+      var __comp = window.GeneratedComponent || window.MyComponent || window.App || window.Component || null;
+      if (__comp) {
+        ReactDOM.render(React.createElement(__comp), document.getElementById('root'));
+      } else {
+        window.parent.postMessage({ type: 'RENDER_ERROR', message: 'No component found. Make sure your function is named App, MyComponent, Component, or GeneratedComponent.' }, '*');
+      }
+    } catch (err) {
+      window.parent.postMessage({ type: 'RENDER_ERROR', message: err.message }, '*');
     }
   </script>
   <script>
