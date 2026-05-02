@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 import { buildIframeContent } from '@/lib/buildIframeContent'
 
 export const dynamic = 'force-dynamic'
@@ -9,7 +9,7 @@ type Props = { params: Promise<{ id: string }> }
 export default async function PreviewPage({ params }: Props) {
   const { id } = await params
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('components')
     .select('id, code')
     .eq('id', id)

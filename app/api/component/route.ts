@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 export const dynamic = 'force-dynamic'
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 
 export async function POST(request: NextRequest) {
   const body = await request.json()
@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'code is required' }, { status: 400 })
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('components')
     .insert({ code })
     .select('id, code, created_at')

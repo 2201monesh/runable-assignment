@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { supabase } from '@/lib/supabase'
+import { getSupabase } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
@@ -8,7 +8,7 @@ type Context = { params: Promise<{ id: string }> }
 export async function GET(_req: NextRequest, { params }: Context) {
   const { id } = await params
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('components')
     .select('id, code, created_at, updated_at')
     .eq('id', id)
@@ -33,7 +33,7 @@ export async function PUT(request: NextRequest, { params }: Context) {
     return NextResponse.json({ error: 'code is required' }, { status: 400 })
   }
 
-  const { data, error } = await supabase
+  const { data, error } = await getSupabase()
     .from('components')
     .update({ code, updated_at: new Date().toISOString() })
     .eq('id', id)
